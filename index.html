@@ -653,19 +653,19 @@
             if (!level) return '';
             const l = level.toLowerCase().trim();
             
-            // Level 4: locality, establishment, neighborhood, political, address
-            if (['locality', 'establishment', 'neighborhood', 'political', 'address'].includes(l)) {
-                return '4';
+            // Level 2: admin2, admin3, district, place
+            if (['admin2', 'admin3', 'district', 'place'].includes(l)) {
+                return '2';
             }
             
-            // Level 3: postcode, postal_code
-            if (l === 'postcode' || l === 'postal_code') {
+            // Level 3: postal_code, postcode
+            if (['postal_code', 'postcode'].includes(l)) {
                 return '3';
             }
             
-            // Level 2: place, district, admin2
-            if (['place', 'district', 'admin2'].includes(l)) {
-                return '2';
+            // Level 4: address, admin4, bicycle_store, clothing_store, establishment, locality, neighborhood, political, premise, route, street_address
+            if (['address', 'admin4', 'bicycle_store', 'clothing_store', 'establishment', 'locality', 'neighborhood', 'political', 'premise', 'route', 'street_address'].includes(l)) {
+                return '4';
             }
             
             return '';
@@ -706,11 +706,11 @@
                     continue;
                 }
 
-                // Filter 3: Skip if level is "admin1"
-                if (locData.level && locData.level.toLowerCase() === 'admin1') {
+                // Filter 3: Skip if level is "admin0" or "admin1"
+                if (locData.level && (locData.level.toLowerCase() === 'admin0' || locData.level.toLowerCase() === 'admin1')) {
                     skipped++;
                     if (skipped <= 3) {
-                        log('Row ' + (i + 1) + ' SKIPPED - level is admin1', 'warning');
+                        log('Row ' + (i + 1) + ' SKIPPED - level is ' + locData.level, 'warning');
                     }
                     continue;
                 }
