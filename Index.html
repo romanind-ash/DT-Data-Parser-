@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Location Data Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status-message {
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .mode-selector {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f1ff 100%);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 2px solid #e0e7ff;
+        }
+
+        .mode-label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 14px;
+            font-size: 15px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .toggle-switch input[type="radio"] {
+            display: none;
+        }
+
+        .toggle-option {
+            flex: 1;
+            padding: 14px 28px;
+            text-align: center;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            color: #666;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .toggle-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .toggle-switch input[type="radio"]:checked + .toggle-option {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #666;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .mode-icon {
+            font-size: 18px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 50px 40px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.hidden {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 13px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            background: #f8f9ff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+            color: #333;
+            border: 1px solid #e0e7ff;
+        }
+
+        .file-info strong {
+            color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        button {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-process {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-process:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-process:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+        }
+
+        .btn-clear {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-clear:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            display: none;
+            width: 100%;
+            font-size: 17px;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-download:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-download.visible {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .preview-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .preview-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .preview-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .debug-section {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        .debug-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .debug-error {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .debug-success {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .debug-warning {
+            color: #d97706;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📍 CSV Location Data Processor</h1>
+        <p class="subtitle">Transform your Groups or Contacts CSV for Google Sheets import</p>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="mode-selector">
+            <label class="mode-label">Select Data Type:</label>
+            <div class="toggle-switch">
+                <input type="radio" id="modeGroup" name="dataMode" value="group" checked>
+                <label for="modeGroup" class="toggle-option">📊 Groups</label>
+                
+                <input type="radio" id="modeContact" name="dataMode" value="contact">
+                <label for="modeContact" class="toggle-option">👤 Contacts</label>
+            </div>
+            <div class="mode-info">
+                <span class="mode-icon">ℹ️</span>
+                <span id="modeText">Groups mode: Notes = "Group [ID]" | Phase = 4 or 5 based on Child Group</span>
+            </div>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Click to upload your CSV file</div>
+            <div class="upload-subtext">or drag and drop here</div>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+
+        <div class="file-info" id="fileInfo"></div>
+
+        <div class="button-group">
+            <button class="btn-process" id="processBtn" disabled>🚀 Process Data</button>
+            <button class="btn-clear" id="clearBtn">🔄 Clear All</button>
+        </div>
+
+        <button class="btn-download" id="downloadBtn">⬇️ DOWNLOAD CSV</button>
+
+        <div class="debug-section">
+            <div class="debug-title">Debug Log:</div>
+            <div id="debugContent">Waiting for file upload...</div>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <div class="preview-title">📋 Preview (first 20 rows)</div>
+            <div style="overflow-x: auto;">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>geo_level</th>
+                            <th>geo_name</th>
+                            <th>geo_lat</th>
+                            <th>geo_lng</th>
+                            <th>phase</th>
+                            <th>notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let processedData = null;
+        let csvData = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const previewSection = document.getElementById('previewSection');
+        const previewBody = document.getElementById('previewBody');
+        const statusMessage = document.getElementById('statusMessage');
+        const fileInfo = document.getElementById('fileInfo');
+        const debugContent = document.getElementById('debugContent');
+        const modeGroup = document.getElementById('modeGroup');
+        const modeContact = document.getElementById('modeContact');
+        const modeText = document.getElementById('modeText');
+
+        // Update mode info text
+        function updateModeInfo() {
+            if (modeGroup.checked) {
+                modeText.textContent = 'Groups mode: Notes = "Group [ID]" | Phase = 4 or 5 based on Child Group';
+            } else {
+                modeText.textContent = 'Contacts mode: Notes = "Contact [ID]" | Phase = 2 or 3 based on baptism status';
+            }
+        }
+
+        modeGroup.addEventListener('change', updateModeInfo);
+        modeContact.addEventListener('change', updateModeInfo);
+
+        // Logging function
+        function log(text, type = '') {
+            const line = document.createElement('div');
+            if (type === 'error') line.className = 'debug-error';
+            else if (type === 'success') line.className = 'debug-success';
+            else if (type === 'warning') line.className = 'debug-warning';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = timestamp + ' - ' + text;
+            debugContent.appendChild(line);
+            debugContent.parentElement.scrollTop = debugContent.parentElement.scrollHeight;
+        }
+
+        // File upload handling
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#764ba2';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#667eea';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#667eea';
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showStatus('Please upload a CSV file', 'error');
+                log('ERROR: File is not a CSV', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                csvData = e.target.result;
+                processBtn.disabled = false;
+                fileInfo.style.display = 'block';
+                fileInfo.innerHTML = '<strong>File loaded:</strong> ' + file.name + ' (' + (file.size / 1024).toFixed(2) + ' KB)';
+                uploadArea.classList.add('hidden');
+                log('File loaded: ' + file.name, 'success');
+            };
+            reader.onerror = () => {
+                log('ERROR: Failed to read file', 'error');
+                showStatus('Error reading file', 'error');
+            };
+            reader.readAsText(file);
+        }
+
+        // Process button
+        processBtn.addEventListener('click', () => {
+            const isGroupMode = modeGroup.checked;
+            const mode = isGroupMode ? 'GROUPS' : 'CONTACTS';
+            
+            log('========================================');
+            log('PROCESSING STARTED - MODE: ' + mode, 'success');
+            log('========================================');
+            
+            try {
+                processedData = processCSV(csvData, isGroupMode);
+                
+                if (processedData.length === 0) {
+                    showStatus('No valid data found to process', 'error');
+                    log('ERROR: No valid records found', 'error');
+                    return;
+                }
+
+                displayPreview(processedData);
+                downloadBtn.classList.add('visible');
+                showStatus('Successfully processed ' + processedData.length + ' records!', 'success');
+                log('Processing complete: ' + processedData.length + ' records', 'success');
+            } catch (error) {
+                log('ERROR: ' + error.message, 'error');
+                showStatus('Error: ' + error.message, 'error');
+            }
+        });
+
+        // Download button
+        downloadBtn.addEventListener('click', () => {
+            if (!processedData) return;
+            
+            const csv = generateCSV(processedData);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'processed_locations.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            log('CSV file downloaded', 'success');
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            csvData = null;
+            processedData = null;
+            processBtn.disabled = true;
+            downloadBtn.classList.remove('visible');
+            previewSection.style.display = 'none';
+            fileInfo.style.display = 'none';
+            statusMessage.style.display = 'none';
+            uploadArea.classList.remove('hidden');
+            debugContent.innerHTML = 'Waiting for file upload...';
+            log('Application reset', 'success');
+        });
+
+        // CSV Parser
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = [];
+            let current = '';
+            let inQuotes = false;
+
+            // Parse headers
+            for (let char of lines[0]) {
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    headers.push(current.trim().replace(/^"|"$/g, ''));
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            headers.push(current.trim().replace(/^"|"$/g, ''));
+
+            log('Found ' + headers.length + ' columns');
+
+            // Parse rows
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const values = [];
+                current = '';
+                inQuotes = false;
+                let bracketDepth = 0;
+
+                for (let char of lines[i]) {
+                    if (char === '[' || char === '{') bracketDepth++;
+                    if (char === ']' || char === '}') bracketDepth--;
+                    if (char === '"') inQuotes = !inQuotes;
+                    
+                    if (char === ',' && !inQuotes && bracketDepth === 0) {
+                        let val = current.trim();
+                        if (val.startsWith('"') && val.endsWith('"')) {
+                            val = val.slice(1, -1);
+                        }
+                        values.push(val.replace(/""/g, '"'));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                let val = current.trim();
+                if (val.startsWith('"') && val.endsWith('"')) {
+                    val = val.slice(1, -1);
+                }
+                values.push(val.replace(/""/g, '"'));
+
+                const row = {};
+                headers.forEach((h, idx) => {
+                    row[h] = values[idx] || '';
+                });
+                rows.push(row);
+            }
+
+            log('Parsed ' + rows.length + ' data rows');
+            return rows;
+        }
+
+        // Extract location data from JSON string
+        function extractLocation(str) {
+            if (!str || !str.trim()) return null;
+
+            try {
+                let cleaned = str.replace(/\\/g, '');
+                cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+                
+                const data = JSON.parse(cleaned);
+                const item = Array.isArray(data) ? data[0] : data;
+                
+                return {
+                    lat: item.lat || '',
+                    lng: item.lng || '',
+                    level: item.level || '',
+                    name: item.label || item.name || ''
+                };
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Map level to geo_level
+        function mapLevel(level) {
+            if (!level) return '';
+            const l = level.toLowerCase().trim();
+            
+            // Level 2: admin2, admin3, district, place
+            if (['admin2', 'admin3', 'district', 'place'].includes(l)) {
+                return '2';
+            }
+            
+            // Level 3: postal_code, postcode
+            if (['postal_code', 'postcode'].includes(l)) {
+                return '3';
+            }
+            
+            // Level 4: address, admin4, bicycle_store, clothing_store, establishment, locality, neighborhood, political, premise, route, street_address
+            if (['address', 'admin4', 'bicycle_store', 'clothing_store', 'establishment', 'locality', 'neighborhood', 'political', 'premise', 'route', 'street_address'].includes(l)) {
+                return '4';
+            }
+            
+            return '';
+        }
+
+        // Main processing function
+        function processCSV(csvText, isGroupMode) {
+            const rows = parseCSV(csvText);
+            const results = [];
+            let skipped = 0;
+            const dataType = isGroupMode ? 'Group' : 'Contact';
+            const statusField = isGroupMode ? 'Group Status' : 'Contact Status';
+
+            log('Processing in ' + dataType + ' mode');
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const location = row['Locations or Address'] || '';
+                const id = row['ID'] || '';
+                const status = row[statusField] || '';
+
+                // Filter 1: Skip if location is empty
+                if (!location.trim()) {
+                    skipped++;
+                    continue;
+                }
+
+                // Filter 2: Skip if status is not "Active"
+                if (status.toLowerCase() !== 'active') {
+                    skipped++;
+                    continue;
+                }
+
+                // Extract location data
+                const locData = extractLocation(location);
+                if (!locData) {
+                    skipped++;
+                    continue;
+                }
+
+                // Filter 3: Skip if level is "admin0" or "admin1"
+                if (locData.level && (locData.level.toLowerCase() === 'admin0' || locData.level.toLowerCase() === 'admin1')) {
+                    skipped++;
+                    if (skipped <= 3) {
+                        log('Row ' + (i + 1) + ' SKIPPED - level is ' + locData.level, 'warning');
+                    }
+                    continue;
+                }
+
+                // Map level to geo_level
+                const geoLevel = mapLevel(locData.level);
+                
+                // Create notes
+                const notes = id ? (dataType + ' ' + id) : '';
+                
+                // Determine phase
+                let phase;
+                if (isGroupMode) {
+                    // Groups: check Child Group field
+                    const childGroup = row['Child Group'] || '';
+                    phase = (childGroup && childGroup.trim()) ? '5' : '4';
+                } else {
+                    // Contacts: check Faith Steps OR Intake Info
+                    const faithSteps = row['Faith Steps'] || '';
+                    const intakeInfo = row['Intake Info'] || '';
+                    const hasBaptized = faithSteps.includes('milestone_baptized');
+                    const hasAlreadyBaptized = intakeInfo.includes('already_baptized');
+                    phase = (hasBaptized || hasAlreadyBaptized) ? '3' : '2';
+                }
+
+                // Add to results
+                results.push({
+                    geo_level: geoLevel,
+                    geo_name: locData.name,
+                    geo_lat: locData.lat,
+                    geo_lng: locData.lng,
+                    phase: phase,
+                    notes: notes
+                });
+
+                // Log first 3 rows
+                if (results.length <= 3) {
+                    log('Row ' + (i + 1) + ': phase=' + phase + ', notes="' + notes + '"', 'success');
+                }
+            }
+
+            log('Processed: ' + results.length + ' | Skipped: ' + skipped);
+            return results;
+        }
+
+        // Generate CSV from data
+        function generateCSV(data) {
+            const headers = ['geo_level', 'geo_name', 'geo_lat', 'geo_lng', 'phase', 'notes'];
+            let csv = headers.join(',') + '\n';
+
+            for (const row of data) {
+                const values = headers.map(h => {
+                    const val = row[h] || '';
+                    return val.toString().includes(',') ? ('"' + val + '"') : val;
+                });
+                csv += values.join(',') + '\n';
+            }
+
+            return csv;
+        }
+
+        // Display preview table
+        function displayPreview(data) {
+            previewBody.innerHTML = '';
+            const previewData = data.slice(0, 20);
+
+            previewData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = 
+                    '<td>' + row.geo_level + '</td>' +
+                    '<td>' + row.geo_name + '</td>' +
+                    '<td>' + row.geo_lat + '</td>' +
+                    '<td>' + row.geo_lng + '</td>' +
+                    '<td>' + row.phase + '</td>' +
+                    '<td>' + row.notes + '</td>';
+                previewBody.appendChild(tr);
+            });
+
+            previewSection.style.display = 'block';
+        }
+
+        // Show status message
+        function showStatus(msg, type) {
+            statusMessage.textContent = msg;
+            statusMessage.className = 'status-message status-' + type;
+            statusMessage.style.display = 'block';
+        }
+
+        // Initial log
+        log('Application ready - Select mode and upload CSV file');
+    </script>
+</body>
+</html>
