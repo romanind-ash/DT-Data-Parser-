@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Data Parser - FINAL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8e9ff;
+        }
+
+        .upload-area.hidden {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .upload-text {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 13px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-process {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-process:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-process:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.6;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            display: none;
+            width: 100%;
+            margin-top: 20px;
+            font-size: 16px;
+            padding: 18px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-download::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-download:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-download:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-download.visible {
+            display: block;
+            animation: slideInUp 0.5s ease-out, pulseGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(16, 185, 129, 0.8);
+            }
+        }
+
+        .btn-clear {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #dc2626;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-title {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .preview-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            color: #333;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .preview-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .preview-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        .file-info {
+            background: #f8f9ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .file-info strong {
+            color: #333;
+        }
+
+        .debug-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            display: block;
+            font-family: monospace;
+            font-size: 11px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .debug-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-family: sans-serif;
+        }
+
+        .debug-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .debug-error {
+            color: #dc2626;
+            font-weight: 600;
+            background: #fee2e2;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .debug-warning {
+            color: #d97706;
+            font-weight: 600;
+            background: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .debug-success {
+            color: #059669;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Webhook Data Parser - FINAL VERSION</h1>
+        <p class="subtitle">Upload your CSV file to transform location data for Google Sheets</p>
+
+        <div class="status-message" id="statusMessage"></div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">[FILE]</div>
+            <div class="upload-text">Click to upload or drag and drop</div>
+            <div class="upload-subtext">CSV files only</div>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+
+        <div class="file-info" id="fileInfo"></div>
+
+        <div class="button-group">
+            <button class="btn-process" id="processBtn" disabled>Process Data</button>
+            <button class="btn-clear" id="clearBtn">Clear All</button>
+        </div>
+        
+        <button class="btn-download" id="downloadBtn">DOWNLOAD CSV</button>
+
+        <div class="debug-section" id="debugSection">
+            <div class="debug-title">Debug Log:</div>
+            <div class="debug-content" id="debugContent">Waiting for file upload...</div>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <div class="preview-title">Preview Results (first 20 rows)</div>
+            <div style="overflow-x: auto;">
+                <table class="preview-table" id="previewTable">
+                    <thead>
+                        <tr>
+                            <th>geo_level</th>
+                            <th>geo_name</th>
+                            <th>geo_lat</th>
+                            <th>geo_lng</th>
+                            <th>phase</th>
+                            <th>notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let processedData = null;
+        let csvData = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const previewSection = document.getElementById('previewSection');
+        const previewBody = document.getElementById('previewBody');
+        const statusMessage = document.getElementById('statusMessage');
+        const fileInfo = document.getElementById('fileInfo');
+        const debugSection = document.getElementById('debugSection');
+        const debugContent = document.getElementById('debugContent');
+
+        function addDebug(text, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = timestamp + ' - ' + text;
+            console.log(message);
+            
+            const line = document.createElement('div');
+            
+            if (type === 'error' || text.toUpperCase().includes('ERROR') || text.toUpperCase().includes('FAILED')) {
+                line.className = 'debug-error';
+            } else if (type === 'warning' || text.toUpperCase().includes('WARNING') || text.toUpperCase().includes('SKIPPED')) {
+                line.className = 'debug-warning';
+            } else if (type === 'success' || text.toUpperCase().includes('SUCCESS')) {
+                line.className = 'debug-success';
+            }
+            
+            line.textContent = message;
+            debugContent.appendChild(line);
+            debugSection.scrollTop = debugSection.scrollHeight;
+        }
+
+        addDebug('Application loaded successfully');
+        addDebug('Click the upload area to select your CSV file');
+
+        uploadArea.addEventListener('click', function(e) {
+            addDebug('Upload area clicked - opening file dialog');
+            fileInput.click();
+        });
+
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                addDebug('File dropped: ' + files[0].name);
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            addDebug('File input changed');
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            addDebug('Handling file: ' + file.name);
+            addDebug('File size: ' + file.size + ' bytes');
+            
+            if (!file.name.endsWith('.csv')) {
+                showStatus('Please upload a CSV file', 'error');
+                addDebug('ERROR: File is not a CSV', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                csvData = e.target.result;
+                addDebug('File loaded successfully', 'success');
+                addDebug('Total characters: ' + csvData.length);
+                
+                const lines = csvData.split('\n');
+                addDebug('Total lines: ' + lines.length);
+                
+                processBtn.disabled = false;
+                fileInfo.style.display = 'block';
+                fileInfo.innerHTML = '<strong>File loaded:</strong> ' + file.name + ' (' + (file.size / 1024).toFixed(2) + ' KB)';
+                showStatus('File loaded successfully! Click "Process Data" to continue.', 'success');
+                
+                uploadArea.classList.add('hidden');
+                addDebug('Upload area hidden - click "Clear All" to upload a new file');
+            };
+            
+            reader.onerror = function(e) {
+                addDebug('ERROR reading file: ' + e, 'error');
+                showStatus('Error reading file', 'error');
+            };
+            
+            addDebug('Starting to read file...');
+            reader.readAsText(file);
+        }
+
+        processBtn.addEventListener('click', function() {
+            addDebug('========== PROCESSING STARTED ==========');
+            if (!csvData) {
+                addDebug('ERROR: No CSV data available', 'error');
+                return;
+            }
+            
+            try {
+                processedData = processCSV(csvData);
+                addDebug('Processing complete: ' + processedData.length + ' records created', 'success');
+                
+                if (processedData.length === 0) {
+                    showStatus('No valid location data found. Check debug log below.', 'warning');
+                    addDebug('WARNING: No records were processed!', 'warning');
+                    return;
+                }
+
+                displayPreview(processedData);
+                downloadBtn.classList.add('visible');
+                showStatus('Successfully processed ' + processedData.length + ' records!', 'success');
+            } catch (error) {
+                addDebug('ERROR during processing: ' + error.message, 'error');
+                addDebug('Stack: ' + error.stack, 'error');
+                showStatus('Error processing file: ' + error.message, 'error');
+            }
+        });
+
+        downloadBtn.addEventListener('click', function() {
+            if (!processedData) return;
+            
+            addDebug('Generating CSV download...');
+            const csv = generateCSV(processedData);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'processed_locations.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            addDebug('CSV file downloaded');
+        });
+
+        clearBtn.addEventListener('click', function() {
+            addDebug('Clearing all data...');
+            fileInput.value = '';
+            csvData = null;
+            processedData = null;
+            processBtn.disabled = true;
+            downloadBtn.classList.remove('visible');
+            previewSection.style.display = 'none';
+            fileInfo.style.display = 'none';
+            statusMessage.style.display = 'none';
+            
+            uploadArea.classList.remove('hidden');
+            
+            debugContent.innerHTML = '';
+            addDebug('Application reset - ready for new file', 'success');
+        });
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const headers = lines[0].split(',').map(function(h) {
+                return h.trim().replace(/^"|"$/g, '');
+            });
+            
+            addDebug('Found ' + headers.length + ' columns');
+            
+            const locationIndex = headers.findIndex(function(h) {
+                return h === 'Locations or Address';
+            });
+            
+            const idIndex = headers.findIndex(function(h) {
+                return h === 'ID';
+            });
+            
+            if (locationIndex === -1) {
+                addDebug('WARNING: "Locations or Address" column not found!', 'warning');
+            } else {
+                addDebug('Found "Locations or Address" at column ' + locationIndex, 'success');
+            }
+            
+            if (idIndex === -1) {
+                addDebug('WARNING: "ID" column not found!', 'warning');
+            } else {
+                addDebug('Found "ID" at column ' + idIndex, 'success');
+            }
+            
+            const rows = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                let bracketDepth = 0;
+
+                for (let j = 0; j < lines[i].length; j++) {
+                    const char = lines[i][j];
+                    
+                    if (char === '[' || char === '{') bracketDepth++;
+                    if (char === ']' || char === '}') bracketDepth--;
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                        current += char;
+                    } else if (char === ',' && !inQuotes && bracketDepth === 0) {
+                        let cleanValue = current.trim();
+                        if (cleanValue.startsWith('"') && cleanValue.endsWith('"')) {
+                            cleanValue = cleanValue.slice(1, -1);
+                        }
+                        cleanValue = cleanValue.replace(/""/g, '"');
+                        values.push(cleanValue);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                let cleanValue = current.trim();
+                if (cleanValue.startsWith('"') && cleanValue.endsWith('"')) {
+                    cleanValue = cleanValue.slice(1, -1);
+                }
+                cleanValue = cleanValue.replace(/""/g, '"');
+                values.push(cleanValue);
+
+                const row = {};
+                for (let k = 0; k < headers.length; k++) {
+                    row[headers[k]] = values[k] || '';
+                }
+                rows.push(row);
+            }
+
+            addDebug('Parsed ' + rows.length + ' data rows');
+            return rows;
+        }
+
+        function extractLocationData(locationString) {
+            if (!locationString || locationString.trim() === '') return null;
+
+            try {
+                let cleaned = locationString.replace(/\\/g, '');
+                cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+                
+                const data = JSON.parse(cleaned);
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    const item = data[0];
+                    return {
+                        lat: item.lat || '',
+                        lng: item.lng || '',
+                        level: item.level || '',
+                        name: item.label || item.name || ''
+                    };
+                }
+                
+                return {
+                    lat: data.lat || '',
+                    lng: data.lng || '',
+                    level: data.level || '',
+                    name: data.label || data.name || ''
+                };
+            } catch (e) {
+                const latMatch = locationString.match(/[,{]\s*lat['":\s]+(['"]?)([-\d.]+)\1/);
+                const lngMatch = locationString.match(/[,{]\s*lng['":\s]+(['"]?)([-\d.]+)\1/);
+                const levelMatch = locationString.match(/[,{]\s*level['":\s]+(['"])([^'"]+)\1/);
+                const labelMatch = locationString.match(/[,{]\s*label['":\s]+(['"])([^'"]+)\1/);
+                const nameMatch = locationString.match(/[,{]\s*name['":\s]+(['"])([^'"]+)\1/);
+
+                if (latMatch && lngMatch) {
+                    return {
+                        lat: latMatch[2],
+                        lng: lngMatch[2],
+                        level: levelMatch ? levelMatch[2] : '',
+                        name: labelMatch ? labelMatch[2] : (nameMatch ? nameMatch[2] : '')
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        function mapLevelToGeoLevel(level) {
+            if (!level) return '';
+            
+            const levelLower = level.toLowerCase().trim();
+            
+            if (['locality', 'establishment', 'neighborhood', 'political', 'address'].includes(levelLower)) {
+                return '4';
+            } 
+            else if (levelLower === 'postcode' || levelLower === 'postal_code') {
+                return '3';
+            } 
+            else if (['place', 'district'].includes(levelLower)) {
+                return '2';
+            }
+            
+            return '';
+        }
+
+        function processCSV(csvText) {
+            const rows = parseCSV(csvText);
+            const results = [];
+            let skippedCount = 0;
+            let processedCount = 0;
+
+            if (rows.length > 0) {
+                const firstRow = rows[0];
+                const hasID = firstRow.hasOwnProperty('ID');
+                addDebug('ID column found: ' + hasID);
+                if (hasID) {
+                    addDebug('Sample ID from first row: "' + firstRow['ID'] + '"');
+                }
+            }
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const locationField = row['Locations or Address'] || '';
+                const idField = row['ID'] || '';
+                
+                if (i < 3) {
+                    addDebug('Row ' + (i+1) + ' raw ID value: "' + idField + '"');
+                }
+                
+                if (locationField && locationField.trim() !== '') {
+                    const locationData = extractLocationData(locationField);
+
+                    if (locationData) {
+                        const geoLevel = mapLevelToGeoLevel(locationData.level);
+                        const notesValue = idField ? 'Group ' + idField : '';
+                        
+                        if (processedCount < 3) {
+                            addDebug('Level: "' + locationData.level + '" → geo_level: "' + geoLevel + '"');
+                            addDebug('Creating notes: "' + notesValue + '"', 'success');
+                        }
+                        
+                        results.push({
+                            geo_level: geoLevel,
+                            geo_name: locationData.name,
+                            geo_lat: locationData.lat,
+                            geo_lng: locationData.lng,
+                            phase: '4',
+                            notes: notesValue
+                        });
+                        processedCount++;
+                        
+                        if (processedCount <= 3) {
+                            addDebug('Row ' + (i+1) + ' SUCCESS - geo_level:' + geoLevel + ', phase:4, notes:"' + notesValue + '"', 'success');
+                        }
+                    } else {
+                        skippedCount++;
+                        if (skippedCount <= 3) {
+                            addDebug('Row ' + (i+1) + ' SKIPPED - invalid location format', 'warning');
+                        }
+                    }
+                } else {
+                    skippedCount++;
+                }
+            }
+
+            if (processedCount === 0) {
+                addDebug('ERROR: No rows were successfully processed!', 'error');
+            }
+            
+            addDebug('SUMMARY: Processed=' + processedCount + ', Skipped=' + skippedCount, processedCount > 0 ? 'success' : 'error');
+            return results;
+        }
+
+        function generateCSV(data) {
+            const headers = ['geo_level', 'geo_name', 'geo_lat', 'geo_lng', 'phase', 'notes'];
+            let csv = headers.join(',') + '\n';
+
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                const values = headers.map(function(header) {
+                    const value = row[header] || '';
+                    return value.toString().includes(',') ? '"' + value + '"' : value;
+                });
+                csv += values.join(',') + '\n';
+            }
+
+            addDebug('CSV generated with ' + data.length + ' rows');
+            if (data.length > 0) {
+                addDebug('Sample first row: ' + headers.join(','));
+                const sampleValues = headers.map(function(h) { 
+                    return data[0][h] || ''; 
+                });
+                addDebug('Sample values: ' + sampleValues.join(','), 'success');
+            }
+
+            return csv;
+        }
+
+        function displayPreview(data) {
+            previewBody.innerHTML = '';
+            const previewData = data.slice(0, 20);
+
+            for (let i = 0; i < previewData.length; i++) {
+                const row = previewData[i];
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + row.geo_level + '</td>' +
+                    '<td>' + row.geo_name + '</td>' +
+                    '<td>' + row.geo_lat + '</td>' +
+                    '<td>' + row.geo_lng + '</td>' +
+                    '<td>' + row.phase + '</td>' +
+                    '<td>' + row.notes + '</td>';
+                previewBody.appendChild(tr);
+            }
+
+            previewSection.style.display = 'block';
+            addDebug('Preview table updated with ' + previewData.length + ' rows');
+        }
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message status-' + type;
+            statusMessage.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
